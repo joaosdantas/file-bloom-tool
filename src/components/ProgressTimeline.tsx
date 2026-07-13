@@ -2,10 +2,10 @@ import { Check, Clock, CalendarClock } from "lucide-react";
 import { TimelineStage } from "@/services/dashboardService";
 
 interface ProgressTimelineProps {
-  stages: TimelineStage[];
+  stages?: TimelineStage[];
 }
 
-const ProgressTimeline = ({ stages }: ProgressTimelineProps) => (
+const ProgressTimeline = ({ stages = [] }: ProgressTimelineProps) => (
   <div className="bg-card rounded-xl p-6 shadow-card">
     <h3 className="font-display font-bold text-card-foreground text-lg mb-6">Etapas da Obra</h3>
     {stages.length === 0 ? (
