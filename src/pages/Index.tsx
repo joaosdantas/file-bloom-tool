@@ -1,17 +1,32 @@
+import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import StatCard from "@/components/StatCard";
 import ProgressTimeline from "@/components/ProgressTimeline";
 import heroImage from "@/assets/hero-construction.jpg";
-import { Building2, CreditCard, FileText, CalendarDays, Bell, TrendingUp } from "lucide-react";
-
-const recentUpdates = [
-  { title: "Concretagem do 8º andar concluída", time: "Hoje, 14:30", type: "obra" },
-  { title: "Boleto de março disponível", time: "Ontem, 09:00", type: "pagamento" },
-  { title: "Nova foto da obra publicada", time: "07 Mar, 16:45", type: "obra" },
-  { title: "Assembleia marcada para 15/03", time: "05 Mar, 10:00", type: "evento" },
-];
+import { Building2, CreditCard, FileText, Users, Bell } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  dashboardService,
+  DashboardStats,
+  TimelineStage,
+  RecentActivity,
+} from "@/services/dashboardService";
 
 const Index = () => {
+  const { user } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stages, setStages] = useState<TimelineStage[]>([]);
+  const [activities, setActivities] = useState<RecentActivity[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    dashboardService.getStats(user.id).then(setStats).catch(() => setStats(null));
+    dashboardService.getTimeline(user.id).then(setStages).catch(() => setStages([]));
+    dashboardService.getRecentActivities(user.id).then(setActivities).catch(() => setActivities([]));
+  }, [user]);
+
+  const fmt = (n: number | undefined) => (n === undefined ? "—" : String(n));
+
   return (
     <AppLayout>
       {/* Hero Banner */}
@@ -36,17 +51,17 @@ const Index = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={TrendingUp} label="Progresso Geral" value="62%" change="+5% este mês" positive />
-        <StatCard icon={CreditCard} label="Próximo Pagamento" value="R$ 3.450" change="Vence em 15/03" />
-        <StatCard icon={FileText} label="Documentos" value="12" change="2 novos" positive />
-        <StatCard icon={CalendarDays} label="Próximo Evento" value="15 Mar" change="Assembleia" />
+        <StatCard icon={Building2} label="Obras" value={fmt(stats?.projectsCount)} />
+        <StatCard icon={FileText} label="Documentos" value={fmt(stats?.documentsCount)} />
+        <StatCard icon={Users} label="Equipe" value={fmt(stats?.teamCount)} />
+        <StatCard icon={CreditCard} label="Pagamentos pendentes" value={fmt(stats?.pendingPayments)} />
       </div>
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Timeline */}
         <div className="lg:col-span-2">
-          <ProgressTimeline />
+          <ProgressTimeline stages={stages} />
         </div>
 
         {/* Recent Updates */}
@@ -55,19 +70,31 @@ const Index = () => {
             <Bell className="h-5 w-5 text-accent" />
             <h3 className="font-display font-bold text-card-foreground text-lg">Atualizações</h3>
           </div>
-          <div className="space-y-4">
-            {recentUpdates.map((update, i) => (
-              <div key={i} className="flex gap-3 items-start">
-                <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
-                  update.type === "obra" ? "bg-success" : update.type === "pagamento" ? "bg-accent" : "bg-primary"
-                }`} />
-                <div>
-                  <p className="text-sm text-card-foreground">{update.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{update.time}</p>
-                </div>
+          {activities.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="rounded-full bg-muted p-3 mb-3">
+                <Bell className="h-5 w-5 text-muted-foreground" />
               </div>
-            ))}
-          </div>
+              <p className="text-sm font-medium text-card-foreground">Sem atividades ainda</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                As novidades da sua obra aparecerão aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {activities.map((update) => (
+                <div key={update.id} className="flex gap-3 items-start">
+                  <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+                    update.type === "obra" ? "bg-success" : update.type === "pagamento" ? "bg-accent" : "bg-primary"
+                  }`} />
+                  <div>
+                    <p className="text-sm text-card-foreground">{update.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{update.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>
